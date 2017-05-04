@@ -50,6 +50,7 @@
     <Compile Include="IDrawable.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Mesh.cs" />
+    <Compile Include="ShaderProgram.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="OpenTK.dll.config" />

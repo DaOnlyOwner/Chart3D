@@ -14,16 +14,15 @@ namespace Chart3D
         public float nx, ny, nz;
         public const int Size = 6* sizeof(float); // In bytes
         
+        public Vector3 Position { get { return new Vector3(x, y, z); } set { x = value.X; y = value.Y; z = value.Z; } }
+        public Vector3 Normal { get { return new Vector3(nx, ny, nz); } set { nx = value.X; ny = value.Y; nz = value.Z; } }
+
         public Vertex(float x, float y, float z)
         {
             this.x = x; this.y = y; this.z = z;
             nx = 0; ny = 0; nz = 0;
         }
-        public Vector3 ToVector(int index)
-        {
-            if (index == 0) return new Vector3(x, y, z);
-            else return new Vector3(nx, ny, nz);
-        }        
+        
          
     }
     public sealed class Mesh : IDrawable
