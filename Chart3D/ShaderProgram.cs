@@ -42,7 +42,7 @@ namespace Chart3D
             GL.GetProgram(handleProg, GetProgramParameterName.LinkStatus, out success);
             if(success == 0)
             {
-                throw new InvalidProgramException("Linking of program failed with message: " + GL.GetProgramInfoLog(handleProg));
+               throw new InvalidProgramException("Linking of program failed with message: " + GL.GetProgramInfoLog(handleProg));
             }
         }
 
@@ -50,7 +50,7 @@ namespace Chart3D
         {
             int success;
             GL.GetShader(handle, ShaderParameter.CompileStatus, out success);
-            if (handleVS == 0)
+            if (handle == 0)
             {
                 throw new InvalidProgramException(String.Format("The sourcecode of the {0}shader was invalid: {1}", which, GL.GetShaderInfoLog(handleVS)));
             }

@@ -15,18 +15,32 @@ namespace Chart3D
     {
         private Mesh procMesh;
         private Camera cam = new Camera();
-        ShaderProgram program = new ShaderProgram(VShader, FShader);
+        ShaderProgram program;
         bool canMove = false;
+        Calc gen;
+        float stepX, stepY;
+        int width, height;
 
-        public Chart3D(Calc gen, int stepX, int stepY, int width, int height) : base(800, 600, GraphicsMode.Default, "Function Plot", GameWindowFlags.Default, DisplayDevice.Default, 3, 3, GraphicsContextFlags.Default)
+        public Chart3D(Calc gen, float stepX, float stepY, int width, int height) : base(800, 600, GraphicsMode.Default, "Function Plot", GameWindowFlags.Default, DisplayDevice.Default, 3, 3, GraphicsContextFlags.Default)
         {
             MouseDown += Chart3D_MouseDown;
             MouseUp += Chart3D_MouseUp;
             MouseWheel += Chart3D_MouseWheel;
             MouseMove += Chart3D_MouseMove;
             UpdateFrame += Chart3D_UpdateFrame;
-            
+            Load += initOpenGL;
 
+            this.gen = gen;
+            this.stepX = stepX;
+            this.stepY = stepY;
+            this.width = width;
+            this.height = height;
+
+        }
+
+        private void initOpenGL(object sender, EventArgs e)
+        {
+            program = new ShaderProgram(VShader, FShader);
             List<Vertex> vertices = CalculateMesh(gen, stepX, stepY, width, height);
             procMesh = new Mesh(vertices);
         }
@@ -62,13 +76,15 @@ namespace Chart3D
 
 
 
-        List<Vertex> CalculateMesh(Calc gen, int stepX, int stepY, int width, int height)
+        List<Vertex> CalculateMesh(Calc gen, float stepX, float stepY, int width, int height)
         {
+            Console.Write("Test");
             var verts = new List<Vertex>();
             for (float y = 0; y < height-1; y += stepY)
             {
                 for(float x = 0; x<width-1; x+=stepX)
                 {
+                    Console.Write("Test inner" + x.ToString() + " " + y.ToString());
                     // Calculate the positions
                     float offsetX = x + stepX;
                     float offsetY = y + stepY;
@@ -111,7 +127,8 @@ namespace Chart3D
             program.SetMatrix("MV", cam.GetMV());
             program.SetMatrix("P", cam.GetP());
 
-            procMesh.Draw();           
+            procMesh.Draw();
+            SwapBuffers();
         }
 
         private static string VShader = @"
@@ -124,15 +141,15 @@ in vec3 normal;
 
 out vec4 color;
 out vec4 V;
-out vec3 N;
+out vec4 N;
 
 void main()
 {
     vec4 posAsVec4 = vec4(position,1.0);
-    gl_position = P*MV * posAsVec4;
+    gl_Position = (P*MV) * posAsVec4;
     color = posAsVec4;
-    V = - MV * vec3(position,1.0);
-    N = MV * normal;
+    V = - MV * posAsVec4;
+    N = MV * vec4(normal,1.0); // No scaling involved
 }
 ";
 
@@ -140,6 +157,7 @@ void main()
 #version 330
 in vec4 color;
 in vec4 V;
+in vec4 N;
 out vec4 fragColor;
 void main()
 {

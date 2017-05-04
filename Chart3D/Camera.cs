@@ -10,16 +10,16 @@ namespace Chart3D
         Matrix4 view;
         Matrix4 proj;
 
-        float phi, theta, r; 
+        float phi, theta, r = 1; 
 
         public Camera()
         {
-            proj = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90), 1, 0, 10000);
+            proj = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90), 1, 1, 10000);
         }
 
         public void UpdateAspect(float aspect)
         {
-            proj = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90), aspect, 0, 10000);
+            proj = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90), aspect, 1, 10000);
         }
 
         public void Forward(float amount)
