@@ -10,32 +10,52 @@ namespace Chart3D
         Matrix4 view;
         Matrix4 proj;
 
-        float phi, theta, r = 1; 
+        float phi,theta, r = 30;
+        private float desiredTheta = (float)Math.PI/4;
+        private float desiredPhi = (float)Math.PI / 4;
 
         public Camera()
         {
-            proj = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90), 1, 1, 10000);
+            proj = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90), 1, 1, 100000);
         }
 
         public void UpdateAspect(float aspect)
         {
-            proj = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90), aspect, 1, 10000);
+            proj = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90), aspect, 1, 100000);
         }
 
         public void Forward(float amount)
         {
             r += amount;
         }
-        public void Yaw(float amount)
+        public void Move(float phi, float theta)
         {
-            phi += amount;
+            updatePhi(phi);
+            updateTheta(theta);
         }
 
-        public void Pitch(float amount)
+        private void updatePhi(float phi)
         {
-            theta += amount;
+            desiredPhi += phi;
         }
-        
+
+        private void updateTheta(float theta)
+        {
+            desiredTheta = (float)MathHelper.Clamp(this.theta + theta, 0, Math.PI);
+        }
+
+        private void interpolateTheta()
+        {
+            this.theta = 0.75f * this.theta + 0.25f * desiredTheta;
+        }
+
+
+        private void interpolatePhi()
+        {
+            this.phi = 0.75f * this.phi + 0.25f * desiredPhi;
+        }
+       
+
         public Matrix4 GetMV()
         {
             float sintheta = (float) Math.Sin(theta);
@@ -43,8 +63,9 @@ namespace Chart3D
             float y = (float) (r * sintheta * Math.Sin(phi));
             float z = (float) (r * Math.Cos(theta));
 
-            view = Matrix4.CreateTranslation(-x, -y, -z);
+            view = Matrix4.LookAt(x, y, z, 0, 0, 0, 0, 0, 1);         
             return view;
+
 
             // The model doesn't move;
 
@@ -55,5 +76,10 @@ namespace Chart3D
             return proj;
         }
 
+        public void InterpolatePos()
+        {
+            interpolatePhi();
+            interpolateTheta();
+        }
     }
 }

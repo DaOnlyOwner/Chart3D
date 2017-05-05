@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26403.3
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chart3D", "Chart3D\Chart3D.csproj", "{B89BB25A-B353-4D4D-AD84-CCC2D893906E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chart3DTest", "..\Chart3DTest\Chart3DTest\Chart3DTest.csproj", "{7D6F0D01-892A-4947-B6AA-4351E33A376D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chart3DTest", "Chart3DTest\Chart3DTest.csproj", "{902188EB-E51D-444C-8BC7-D91902102E4F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{B89BB25A-B353-4D4D-AD84-CCC2D893906E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B89BB25A-B353-4D4D-AD84-CCC2D893906E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B89BB25A-B353-4D4D-AD84-CCC2D893906E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7D6F0D01-892A-4947-B6AA-4351E33A376D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7D6F0D01-892A-4947-B6AA-4351E33A376D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7D6F0D01-892A-4947-B6AA-4351E33A376D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7D6F0D01-892A-4947-B6AA-4351E33A376D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{902188EB-E51D-444C-8BC7-D91902102E4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{902188EB-E51D-444C-8BC7-D91902102E4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{902188EB-E51D-444C-8BC7-D91902102E4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{902188EB-E51D-444C-8BC7-D91902102E4F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

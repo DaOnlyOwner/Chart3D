@@ -70,10 +70,11 @@ namespace Chart3D
             GL.BindVertexArray(0);
         }
 
+
         ~Mesh()
         {
-            GL.DeleteBuffer(handleVBO);
-            GL.DeleteVertexArray(handleVAO);
+            //GL.DeleteBuffer(handleVBO);
+            //GL.DeleteVertexArray(handleVAO);
         }
     }
 }
