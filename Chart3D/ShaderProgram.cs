@@ -62,5 +62,12 @@ namespace Chart3D
             int loc = GL.GetUniformLocation(handleProg, name);
             GL.UniformMatrix4(loc, false, ref matrix);
         }
+
+        public void SetFloat(string name, float num)
+        {
+            Use();
+            int loc = GL.GetUniformLocation(handleProg, name);
+            GL.Uniform1(loc, num);
+        }
     }
 }
