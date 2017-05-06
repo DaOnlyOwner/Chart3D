@@ -14,6 +14,7 @@ namespace Chart3D
     //TODO: Implement a Constructor that takes an IEnumerable to abstract from delegates
     //TODO: Implement wrapper around Matrix4 so that it doesn't get copied all the time
     //TODO: Set max_z_value before compile time of shader;
+    //TODO: Optimize CalculateMesh
     public class Chart3D : OpenTK.GameWindow
     {
         private Mesh procMesh;
@@ -28,11 +29,8 @@ namespace Chart3D
 
         float lengthZAxis;
 
-        public Chart3D(Calc gen, float stepX = 1f, float stepY = 1f, float rangeX=10f, float rangeY = 10f, float lengthXYAxis = 10f, float lengthZAxis = 10f, int msaaSamples = 4) : base(800, 600, new GraphicsMode(32,0,0,msaaSamples), "Function Plot", GameWindowFlags.Default, DisplayDevice.Default, 3, 3, GraphicsContextFlags.Default)
+        public Chart3D(Calc gen, float stepX = 1f, float stepY = 1f, float rangeX=10f, float rangeY = 10f, float lengthXYAxis = 10f, float lengthZAxis = 10f, int msaaSamples = 4) : base(800, 600, new GraphicsMode(32,24,0,msaaSamples), "Function Plot", GameWindowFlags.Default, DisplayDevice.Default, 3, 3, GraphicsContextFlags.Default)
         {
-            // TODO: To implement a color map see the paper: http://www.kennethmoreland.com/color-maps/ 
-            //String.Format(VShader, lengthZAxis); // To map the highest coordinate to red;
-
             MouseDown += Chart3D_MouseDown;
             MouseUp += Chart3D_MouseUp;
             UpdateFrame += Chart3D_UpdateFrame;
@@ -111,12 +109,13 @@ namespace Chart3D
                     Vertex v4 = new Vertex(offsetX, y, gen(offsetX,y));
 
                     // Calculate the normals
-                    /*Vector3 d1 = v2.Position - v1.Position;
+                    Vector3 d1 = v2.Position - v1.Position;
                     Vector3 d2 = v4.Position - v1.Position;
                     v1.Normal = Vector3.Cross(d2, d1).Normalized();
                     v2.Normal = v1.Normal;
                     v3.Normal = v1.Normal;
-                    v4.Normal = v1.Normal;*/
+                    v4.Normal = v1.Normal;
+                    //Console.Write(v1.Normal);
 
                     verts.Add(v1); verts.Add(v2); verts.Add(v4); verts.Add(v4);  verts.Add(v3); verts.Add(v2);
 
@@ -124,11 +123,11 @@ namespace Chart3D
                 }
             }
 
-            var max = verts.Max((v) => v.z);
+            var max = verts.Max((v) => Math.Abs(v.z));
        
             for(int i = 0; i<verts.Count; i++)
             {
-                verts[i] = new Vertex(verts[i].x / width * 10, verts[i].y / height * 10, verts[i].z / max * 10);
+                //verts[i] = new Vertex(verts[i].x / width * 10, verts[i].y / height * 10, verts[i].z / max * 10, verts[i].nx,verts[i].ny,verts[i].nz);
             }
 
             return verts;
@@ -177,10 +176,10 @@ void main()
 {
     vec4 posAsVec4 = vec4(position,1.0);
     gl_Position = (P*MV) * posAsVec4;
-    height = posAsVec4.z / max_z_value;
-    V = - MV * posAsVec4;
+    height = ((posAsVec4.z / max_z_value) +1) / 2.0 ; // Map (posAsVec4.z / max_z_value) from [-1,1] to [0,1]
+    V = normalize(- MV * posAsVec4);
 
-    N = MV * vec4(normal,1.0); // No scaling involved
+    N = vec4(normal,1.0); // No scaling involved
 }
 ";
         // colormap code taken from: https://github.com/kbinani/glsl-colormap/blob/master/shaders/IDL_CB-YIGnBu.frag
@@ -191,10 +190,6 @@ in float height;
 in vec4 V;
 in vec4 N;
 out vec4 fragColor;
-
-const float M = 80f;
-const float h = 0.5f;
-const float s = 1.08f;
 
 vec4 colormap(float x) {
     float r = 0.0, g = 0.0, b = 0.0;
@@ -234,10 +229,9 @@ vec4 colormap(float x) {
     return vec4(r, g, b, 1.0);
 }
 
-
 void main()
 {
-    fragColor = colormap(max(height,0));
+    fragColor = dot(N,V)*colormap(height);
 }
 ";
         private int lastWheel;

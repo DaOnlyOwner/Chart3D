@@ -17,12 +17,22 @@ namespace Chart3D
         public Vector3 Position { get { return new Vector3(x, y, z); } set { x = value.X; y = value.Y; z = value.Z; } }
         public Vector3 Normal { get { return new Vector3(nx, ny, nz); } set { nx = value.X; ny = value.Y; nz = value.Z; } }
 
+
+        public Vertex(float x, float y, float z, float nx, float ny, float nz)
+        {
+            this.x = x; this.y = y; this.z = z;
+            this.nx = nx; this.ny = ny; this.nz = nz;
+        }
+
+        
         public Vertex(float x, float y, float z)
         {
             this.x = x; this.y = y; this.z = z;
             nx = 0; ny = 0; nz = 0;
         }
         
+
+
          
     }
     public sealed class Mesh : IDrawable
@@ -52,10 +62,10 @@ namespace Chart3D
             vertices_ = vertices.ToArray();
             GL.BufferData(BufferTarget.ArrayBuffer, vertices.Count * Vertex.Size, vertices_, BufferUsageHint.StaticDraw);
 
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 0);
+            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, Vertex.Size, 0);
             GL.EnableVertexAttribArray(0);
 
-            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, 6 * sizeof(float), 3*sizeof(float));
+            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, Vertex.Size, 3*sizeof(float));
             GL.EnableVertexAttribArray(1);
 
             GL.BindVertexArray(0);
