@@ -42,7 +42,7 @@ namespace Chart3D
             GL.GetProgram(handleProg, GetProgramParameterName.LinkStatus, out success);
             if(success == 0)
             {
-               throw new InvalidProgramException("Linking of program failed with message: " + GL.GetProgramInfoLog(handleProg));
+                throw new InvalidProgramException("Linking of program failed with message: " + GL.GetProgramInfoLog(handleProg));
             }
         }
 
@@ -56,7 +56,7 @@ namespace Chart3D
             }
         }
 
-        public void SetMatrix(string name, Matrix4 matrix)
+        public void SetMatrix(string name, ref Matrix4 matrix)
         {
             Use(); // TODO: test this out --> Do I have to use it here? donno really.
             int loc = GL.GetUniformLocation(handleProg, name);
@@ -68,6 +68,13 @@ namespace Chart3D
             Use();
             int loc = GL.GetUniformLocation(handleProg, name);
             GL.Uniform1(loc, num);
+        }
+
+        internal void SetVector3(string name, ref Vector3 p)
+        {
+            Use();
+            int loc = GL.GetUniformLocation(handleProg, name);
+            GL.Uniform3(loc, p);
         }
     }
 }

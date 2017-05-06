@@ -56,7 +56,7 @@ namespace Chart3D
         }
        
 
-        public Matrix4 GetMV()
+        public Matrix4 GetV()
         {
             float sintheta = (float) Math.Sin(theta);
             float x = (float) (r * sintheta * Math.Cos(phi));
@@ -80,6 +80,15 @@ namespace Chart3D
         {
             interpolatePhi();
             interpolateTheta();
+        }
+
+        public static Vector3 SphericalToCart(float r, float phi, float theta)
+        {
+            float sintheta = (float)Math.Sin(theta);
+            float x = (float)(r * sintheta * Math.Cos(phi));
+            float y = (float)(r * sintheta * Math.Sin(phi));
+            float z = (float)(r * Math.Cos(theta));
+            return new Vector3(x, y, z);
         }
     }
 }

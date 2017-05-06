@@ -11,10 +11,13 @@ namespace Chart3D
 {
     public delegate float Calc(float x, float y);
 
-    //TODO: Implement a Constructor that takes an IEnumerable to abstract from delegates
+    //TODO: Calculate the normals correctly, improve performance of CalculateMesh.
     //TODO: Implement wrapper around Matrix4 so that it doesn't get copied all the time
-    //TODO: Set max_z_value before compile time of shader;
-    //TODO: Optimize CalculateMesh
+    //TODO: Implement wrapper around light
+    //TODO: Put calculation of normal matrix to the cpu
+    //TODO: Style guidelines;
+    //TODO: Correct and optimize shader
+    //TODO: Implement a Constructor that takes an IEnumerable to abstract from delegates
     public class Chart3D : OpenTK.GameWindow
     {
         private Mesh procMesh;
@@ -24,15 +27,18 @@ namespace Chart3D
         Calc gen;
         float stepX, stepY;
         float rangeX, rangeY;
-
-        int lastMouseX, lastMouseY;
-
         float lengthZAxis;
+
+        float lightPosPhi;
+        float lightPosTheta;
+        float lightPosR=10;
 
         public Chart3D(Calc gen, float stepX = 1f, float stepY = 1f, float rangeX=10f, float rangeY = 10f, float lengthXYAxis = 10f, float lengthZAxis = 10f, int msaaSamples = 4) : base(800, 600, new GraphicsMode(32,24,0,msaaSamples), "Function Plot", GameWindowFlags.Default, DisplayDevice.Default, 3, 3, GraphicsContextFlags.Default)
         {
             MouseDown += Chart3D_MouseDown;
             MouseUp += Chart3D_MouseUp;
+            MouseMove += Chart3D_MouseMove;
+            MouseWheel += Chart3D_MouseWheel;
             UpdateFrame += Chart3D_UpdateFrame;
             Load += initOpenGL;
             
@@ -46,11 +52,29 @@ namespace Chart3D
 
         }
 
+        private void Chart3D_MouseMove(object sender, MouseMoveEventArgs e)
+        {
+
+            if(canMove && Keyboard.GetState().IsKeyDown(Key.ShiftLeft))
+            {
+                lightPosPhi -= e.XDelta * 0.01f;
+                lightPosTheta -= e.YDelta * 0.03f;
+                return;
+            }
+
+            if(canMove)
+            {
+                cam.Move(-e.XDelta * 0.01f, -e.YDelta * 0.03f);
+            }
+        }
+
         private void initOpenGL(object sender, EventArgs e)
         {
             List<Vertex> vertices = CalculateMesh(gen, stepX, stepY, rangeX, rangeY);
             procMesh = new Mesh(vertices);
             program = new ShaderProgram(VShader, FShader);
+            program.Use();
+            program.SetFloat("max_z_value", lengthZAxis);
             GL.Enable(EnableCap.DepthTest);
             GL.Enable(EnableCap.Multisample);
             
@@ -59,24 +83,18 @@ namespace Chart3D
 
         private void Chart3D_UpdateFrame(object sender, FrameEventArgs e)
         {
-            if (canMove)
-            {
-                int deltaX = lastMouseX - Mouse.X;
-                int deltaY = lastMouseY - Mouse.Y;
-                cam.Move(deltaX * /*(float)e.Time **/ 0.01f, deltaY /** (float)e.Time */* 0.03f);
-                lastMouseX = Mouse.X; lastMouseY = Mouse.Y;
-            }
-
-
             cam.InterpolatePos();
-            cam.Forward(lastWheel - Mouse.Wheel);
-            lastWheel = Mouse.Wheel;
-
         }
 
         private void Chart3D_MouseWheel(object sender, MouseWheelEventArgs e)
         {
-            cam.Forward(e.DeltaPrecise);
+            if (Keyboard.GetState().IsKeyDown(Key.ShiftLeft))
+            {
+                lightPosR -= e.DeltaPrecise;
+                return;
+            }
+
+            cam.Forward(-e.DeltaPrecise);
         }
 
         private void Chart3D_MouseUp(object sender, MouseButtonEventArgs e)
@@ -86,7 +104,6 @@ namespace Chart3D
 
         private void Chart3D_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            lastMouseX = Mouse.X; lastMouseY = Mouse.Y;
             canMove = true;
         }
 
@@ -146,13 +163,17 @@ namespace Chart3D
         {
             base.OnRenderFrame(e);
             
-            GL.ClearColor(Color4.White);
+            GL.ClearColor(Color4.Black);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
+            Matrix4 V = cam.GetV();
+            Matrix4 P = cam.GetP();
+            Vector3 lightPos = Camera.SphericalToCart(lightPosR, lightPosPhi, lightPosTheta);
+
             program.Use();
-            program.SetMatrix("MV", cam.GetMV());
-            program.SetMatrix("P", cam.GetP());
-            program.SetFloat("max_z_value", lengthZAxis);
+            program.SetMatrix("V", ref V);
+            program.SetMatrix("P", ref P);
+            program.SetVector3("lightPos", ref lightPos);
             procMesh.Draw();
             SwapBuffers();
             Console.WriteLine("Frame took : " + e.Time * 100 + "ms");
@@ -162,34 +183,43 @@ namespace Chart3D
 #version 330
 
 uniform float max_z_value; // Replace this with a constant and set the variable on compile time
-uniform mat4 MV;
+uniform mat4 V;
 uniform mat4 P;
+uniform vec3 lightPos;
 
 in vec3 position;
 in vec3 normal;
 
 out float height;
-out vec4 V;
+out vec4 E;
 out vec4 N;
+out vec4 L;
 
 void main()
 {
     vec4 posAsVec4 = vec4(position,1.0);
-    gl_Position = (P*MV) * posAsVec4;
+    gl_Position = (P*V) * posAsVec4;
     height = ((posAsVec4.z / max_z_value) +1) / 2.0 ; // Map (posAsVec4.z / max_z_value) from [-1,1] to [0,1]
-    V = normalize(- MV * posAsVec4);
+    E = normalize(- V * posAsVec4);
 
-    N = vec4(normal,1.0); // No scaling involved
+    N = normalize(vec4( mat3( transpose( inverse(V) ) ) * normal,1.0f)); // No scaling involved
+    L = normalize(-V*vec4(lightPos,1.0));
 }
 ";
         // colormap code taken from: https://github.com/kbinani/glsl-colormap/blob/master/shaders/IDL_CB-YIGnBu.frag
         private static string FShader = @"
 #version 330
 
+
 in float height;
-in vec4 V;
+in vec4 E;
 in vec4 N;
+in vec4 L;
+
 out vec4 fragColor;
+
+const float specularStrength = 0.4f;
+
 
 vec4 colormap(float x) {
     float r = 0.0, g = 0.0, b = 0.0;
@@ -229,11 +259,27 @@ vec4 colormap(float x) {
     return vec4(r, g, b, 1.0);
 }
 
+vec4 diffuse()
+{
+    return vec4(max(dot(N,L),0.0)); // color of light is white;
+}
+
+vec4 ambient()
+{
+    return 0.4 * colormap(height);
+}
+
+vec4 specular()
+{
+    vec4 I = reflect(-L,N);
+    float specularComp = pow(max(dot(E,I),0.0),128);
+    return vec4(specularStrength * specularComp);
+}
+
 void main()
 {
-    fragColor = dot(N,V)*colormap(height);
+    fragColor = (diffuse() + ambient() + specular() ) * colormap(height); 
 }
 ";
-        private int lastWheel;
     }
 }
