@@ -10,13 +10,12 @@ using System.Drawing.Imaging;
 namespace Chart3D
 {
     public delegate float Calc(float x, float y);
-
-    //TODO: Calculate the normals correctly, improve performance of CalculateMesh.
-    //TODO: Implement wrapper around Matrix4 so that it doesn't get copied all the time
     //TODO: Implement wrapper around light
     //TODO: Put calculation of normal matrix to the cpu
-    //TODO: Style guidelines;
     //TODO: Correct and optimize shader
+    //TODO: Improve performane for overall application
+    //TODO: Style guidelines;
+    //TODO: Comment code;
     //TODO: Implement a Constructor that takes an IEnumerable to abstract from delegates
     public class Chart3D : OpenTK.GameWindow
     {
@@ -28,6 +27,7 @@ namespace Chart3D
         float stepX, stepY;
         float rangeX, rangeY;
         float lengthZAxis;
+        float lengthXYAxis;
 
         float lightPosPhi;
         float lightPosTheta;
@@ -49,6 +49,7 @@ namespace Chart3D
             this.rangeY = rangeY;
 
             this.lengthZAxis = lengthZAxis;
+            this.lengthXYAxis = lengthXYAxis;
 
         }
 
@@ -70,14 +71,22 @@ namespace Chart3D
 
         private void initOpenGL(object sender, EventArgs e)
         {
-            List<Vertex> vertices = CalculateMesh(gen, stepX, stepY, rangeX, rangeY);
+            float rangeZ;
+            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+            sw.Start();
+            Vertex[] vertices = CalcVertices(gen, stepX, stepY, rangeX, rangeY, out rangeZ);
+            sw.Stop();
+            Console.WriteLine(sw.Elapsed.Milliseconds);
             procMesh = new Mesh(vertices);
+            procMesh.Scale = new Vector3(1f / rangeX, 1f / rangeY, 1f / rangeZ) * new Vector3(lengthXYAxis, lengthXYAxis, lengthZAxis); 
             program = new ShaderProgram(VShader, FShader);
             program.Use();
             program.SetFloat("max_z_value", lengthZAxis);
+            Matrix4 M = procMesh.M;
+            program.SetMatrix("M", ref M);
             GL.Enable(EnableCap.DepthTest);
             GL.Enable(EnableCap.Multisample);
-            
+
             OnResize(e);
         }
 
@@ -110,17 +119,23 @@ namespace Chart3D
 
 
 
-        List<Vertex> CalculateMesh(Calc gen, float stepX, float stepY, float width, float height)
+        Vertex[] CalcVertices(Calc gen, float stepX, float stepY, float rangeX, float rangeY, out float rangeZ)
         {
-            var verts = new List<Vertex>();
-            for (float y = -height; y < height-1; y += stepY)
+            rangeZ = 0;
+            float max = 0;
+            Vertex[] verts = new Vertex[(long)(( rangeX / stepX) * ( rangeY / stepY) * 4 * 6)+1];
+            int counter = 0;
+            for (float y = -rangeY; y <= rangeY; y += stepY)
             {
-                for(float x = -width; x<width; x+=stepX)
+                for(float x = -rangeX; x<=rangeX; x+=stepX)
                 {
                     // Calculate the positions
                     float offsetX = x + stepX;
                     float offsetY = y + stepY;
-                    Vertex v1 = new Vertex(x, y, gen(x, y));
+                    float z = gen(x, y);
+                    if (Math.Abs(z) > max) max = Math.Abs(z);
+
+                    Vertex v1 = new Vertex(x, y, z);
                     Vertex v2 = new Vertex(x, offsetY, gen(x, offsetY));
                     Vertex v3 = new Vertex(offsetX, offsetY, gen(offsetX, offsetY));
                     Vertex v4 = new Vertex(offsetX, y, gen(offsetX,y));
@@ -134,22 +149,34 @@ namespace Chart3D
                     v4.Normal = v1.Normal;
                     //Console.Write(v1.Normal);
 
-                    verts.Add(v1); verts.Add(v2); verts.Add(v4); verts.Add(v4);  verts.Add(v3); verts.Add(v2);
-
-                    
+                    verts[counter] = v1;
+                    verts[counter+1] = v2;
+                    verts[counter+2] = v4;
+                    verts[counter+3] = v4;
+                    verts[counter+4] = v3;
+                    verts[counter+5] = v2;
+                    counter+=6;
                 }
             }
 
-            var max = verts.Max((v) => Math.Abs(v.z));
-       
-            for(int i = 0; i<verts.Count; i++)
-            {
-                //verts[i] = new Vertex(verts[i].x / width * 10, verts[i].y / height * 10, verts[i].z / max * 10, verts[i].nx,verts[i].ny,verts[i].nz);
-            }
-
+            rangeZ = max;
             return verts;
             //eturn new List<Vertex>() { new Vertex(0, 0, 0), new Vertex(0, 1, 0), new Vertex(0, 0, 1) };
 
+        }
+
+        private void recalculateNormals(Vertex[] verts)
+        {
+            for (int i = 0; i < verts.Length; i += 6)
+            {
+                Vector3 d1 = verts[i + 1].Position - verts[i].Position;
+                Vector3 d2 = verts[i + 3].Position - verts[i].Position;
+                Vector3 d1xd2 = Vector3.Cross(d2, d1);
+
+                for(int j = i; j<6; j++)
+                    verts[i+j] = new Vertex(verts[i+j].x, verts[i+j].y, verts[i+j].z, d1xd2.X, d1xd2.Y, d1xd2.Z);
+                
+            }
         }
 
         protected override void OnResize(EventArgs e)
@@ -184,6 +211,7 @@ namespace Chart3D
 
 uniform float max_z_value; // Replace this with a constant and set the variable on compile time
 uniform mat4 V;
+uniform mat4 M;
 uniform mat4 P;
 uniform vec3 lightPos;
 
@@ -198,12 +226,12 @@ out vec4 L;
 void main()
 {
     vec4 posAsVec4 = vec4(position,1.0);
-    gl_Position = (P*V) * posAsVec4;
+    gl_Position = (P*V*M) * posAsVec4;
     height = ((posAsVec4.z / max_z_value) +1) / 2.0 ; // Map (posAsVec4.z / max_z_value) from [-1,1] to [0,1]
-    E = normalize(- V * posAsVec4);
+    E = normalize(- (V*M) * posAsVec4);
 
-    N = normalize(vec4( mat3( transpose( inverse(V) ) ) * normal,1.0f)); // No scaling involved
-    L = normalize(-V*vec4(lightPos,1.0));
+    N = normalize(vec4( mat3( transpose( inverse(V*M) ) ) * normal,1.0f)); // No scaling involved
+    L = normalize(-(V*M)*vec4(lightPos,1.0));
 }
 ";
         // colormap code taken from: https://github.com/kbinani/glsl-colormap/blob/master/shaders/IDL_CB-YIGnBu.frag
@@ -278,7 +306,8 @@ vec4 specular()
 
 void main()
 {
-    fragColor = (diffuse() + ambient() + specular() ) * colormap(height); 
+    //fragColor = (diffuse() + ambient() + specular() ) * colormap(height); 
+    fragColor = N;
 }
 ";
     }

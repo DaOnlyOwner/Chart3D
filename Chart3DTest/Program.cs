@@ -12,7 +12,7 @@ namespace Chart3DTest
     {
         static void Main(string[] args)
         {
-            Chart3D.Chart3D test = new Chart3D.Chart3D( (a,b) => a*a*b, 0.01f,0.01f,10,10 );
+            Chart3D.Chart3D test = new Chart3D.Chart3D( (a,b) => a*a*b, 0.1f,0.1f,10,10 );
             test.Run();
 
         }

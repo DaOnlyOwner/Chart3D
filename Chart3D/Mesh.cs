@@ -41,11 +41,23 @@ namespace Chart3D
         int handleVAO = -1;
         public Mesh(List<Vertex> vertices)
         {
-            Load(vertices);
+            this.vertices = vertices.ToArray();
+            Load();
         }
 
-        Vertex[] vertices_;
-        public void Load(List<Vertex> vertices)
+        public Mesh(Vertex[] vertices)
+        {
+            this.vertices = vertices;
+            Load();
+        }
+
+        private Vertex[] vertices;
+
+        public Vector3 Scale { get { return new Vector3(sx, sy, sz); } set { sx = value.X; sy = value.Y; sz = value.Z; } }
+        public Matrix4 M { get { return Matrix4.CreateScale(sx, sy, sz); } }
+        float sx, sy, sz;
+
+        public void Load()
         {
             if(handleVBO > -1 || handleVAO > -1)
             {
@@ -59,8 +71,8 @@ namespace Chart3D
 
             GL.BindVertexArray(handleVAO);
             GL.BindBuffer(BufferTarget.ArrayBuffer, handleVBO);
-            vertices_ = vertices.ToArray();
-            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Count * Vertex.Size, vertices_, BufferUsageHint.StaticDraw);
+         
+            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * Vertex.Size, vertices, BufferUsageHint.StaticDraw);
 
             GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, Vertex.Size, 0);
             GL.EnableVertexAttribArray(0);
@@ -76,9 +88,10 @@ namespace Chart3D
         public void Draw()
         {
             GL.BindVertexArray(handleVAO);
-            GL.DrawArrays(PrimitiveType.Triangles, 0, vertices_.Length);
+            GL.DrawArrays(PrimitiveType.Triangles, 0, vertices.Length);
             GL.BindVertexArray(0);
         }
+
 
 
         ~Mesh()

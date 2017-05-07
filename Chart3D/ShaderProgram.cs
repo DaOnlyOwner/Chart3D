@@ -7,7 +7,7 @@ namespace Chart3D
 {
     public class ShaderProgram
     {
-        String vs, fs;
+
         int handleVS, handleFS, handleProg;
 
         public ShaderProgram(String vs, String fs)
@@ -50,7 +50,7 @@ namespace Chart3D
         {
             int success;
             GL.GetShader(handle, ShaderParameter.CompileStatus, out success);
-            if (handle == 0)
+            if (success == 0)
             {
                 throw new InvalidProgramException(String.Format("The sourcecode of the {0}shader was invalid: {1}", which, GL.GetShaderInfoLog(handleVS)));
             }
